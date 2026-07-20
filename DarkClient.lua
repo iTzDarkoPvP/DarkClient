@@ -1,11 +1,11 @@
 --[[
     ========================================
-          DARK CLIENT v3.0 - NEON PURPLE
+          DARK CLIENT v3.1 - FLOATING BTN
     ========================================
-    ✅ Menú GUI Arrastrable y Guardable
-    ✅ Estética Morado Neón + Negro
-    ✅ Speed, Fly, Noclip, BTools, ESP
-    ✅ Sistema de Guardado de Posición
+    ✅ Botón Flotante para Abrir/Cerrar
+    ✅ Sin dependencias de teclas raras
+    ✅ Estética Neon Purple + Negro
+    ✅ HUD FPS/Ping Funcional
     ========================================
 ]]
 
@@ -13,29 +13,28 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local TweenService = game:GetService("TweenService")
 
--- CONFIGURACIÓN DE TEMA NEON PURPLE
+-- TEMA NEON PURPLE
 local Theme = {
-    Main = Color3.fromRGB(10, 10, 15),        -- Negro profundo
-    Secondary = Color3.fromRGB(20, 20, 30),   -- Gris oscuro azulado
-    Accent = Color3.fromRGB(160, 32, 240),    -- Morado brillante neón
-    Glow = Color3.fromRGB(200, 80, 255),      -- Morado claro para brillos
+    Main = Color3.fromRGB(10, 10, 15),
+    Secondary = Color3.fromRGB(20, 20, 30),
+    Accent = Color3.fromRGB(160, 32, 240),
+    Glow = Color3.fromRGB(200, 80, 255),
     Text = Color3.fromRGB(255, 255, 255),
     ToggleOn = Color3.fromRGB(180, 50, 255),
     ToggleOff = Color3.fromRGB(80, 80, 90)
 }
 
--- VARIABLES GLOBALES
+-- VARIABLES
 local MenuOpen = false
 local Dragging = false
 local DragOffset = Vector2.zero
-local SavedPos = nil
 
 -- ==========================================
--- 1. HUD DE ESTADÍSTICAS (FIXED)
+-- 1. HUD DE ESTADÍSTICAS
 -- ==========================================
 local StatsGui = Instance.new("ScreenGui")
 StatsGui.Name = "DarkClient_Stats"
@@ -60,14 +59,6 @@ StatsStroke.Thickness = 2
 StatsStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 StatsStroke.Parent = StatsBox
 
-local StatsGlow = Instance.new("UIGradient")
-StatsGlow.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Theme.Accent),
-    ColorSequenceKeypoint.new(1, Theme.Glow)
-})
-StatsGlow.Rotation = 45
-StatsGlow.Parent = StatsStroke
-
 local StatsLabel = Instance.new("TextLabel")
 StatsLabel.Size = UDim2.new(1, -15, 1, 0)
 StatsLabel.Position = UDim2.new(0, 8, 0, 0)
@@ -89,7 +80,44 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 2. MENÚ GUI PRINCIPAL (ARRASTRABLE)
+-- 2. BOTÓN FLOTANTE (TOGGLE)
+-- ==========================================
+local FloatGui = Instance.new("ScreenGui")
+FloatGui.Name = "DarkClient_FloatBtn"
+FloatGui.ResetOnSpawn = false
+FloatGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+FloatGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local FloatBtn = Instance.new("TextButton")
+FloatBtn.Size = UDim2.new(0, 50, 0, 50)
+FloatBtn.Position = UDim2.new(0, 20, 0.5, -25) -- Lado izquierdo centro
+FloatBtn.BackgroundColor3 = Theme.Accent
+FloatBtn.Text = "D"
+FloatBtn.TextColor3 = Theme.Text
+FloatBtn.Font = Enum.Font.GothamBold
+FloatBtn.TextSize = 24
+FloatBtn.AutoButtonColor = false
+FloatBtn.Parent = FloatGui
+
+local FloatCorner = Instance.new("UICorner")
+FloatCorner.CornerRadius = UDim.new(1, 0) -- Círculo perfecto
+FloatCorner.Parent = FloatBtn
+
+local FloatStroke = Instance.new("UIStroke")
+FloatStroke.Color = Theme.Glow
+FloatStroke.Thickness = 2
+FloatStroke.Parent = FloatBtn
+
+-- Animación al hacer hover
+FloatBtn.MouseEnter:Connect(function()
+    TweenService:Create(FloatBtn, TweenInfo.new(0.2), {Size = UDim2.new(0, 55, 0, 55)}):Play()
+end)
+FloatBtn.MouseLeave:Connect(function()
+    TweenService:Create(FloatBtn, TweenInfo.new(0.2), {Size = UDim2.new(0, 50, 0, 50)}):Play()
+end)
+
+-- ==========================================
+-- 3. MENÚ GUI PRINCIPAL
 -- ==========================================
 local MenuGui = Instance.new("ScreenGui")
 MenuGui.Name = "DarkClient_Menu"
@@ -126,18 +154,11 @@ local TopBarCorner = Instance.new("UICorner")
 TopBarCorner.CornerRadius = UDim.new(0, 12)
 TopBarCorner.Parent = TopBar
 
-local BottomClip = Instance.new("Frame")
-BottomClip.Size = UDim2.new(1, 0, 0, 12)
-BottomClip.Position = UDim2.new(0, 0, 1, -12)
-BottomClip.BackgroundColor3 = Theme.Secondary
-BottomClip.BorderSizePixel = 0
-BottomClip.Parent = TopBar
-
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -50, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "DARK CLIENT v3.0"
+TitleLabel.Text = "DARK CLIENT v3.1"
 TitleLabel.TextColor3 = Theme.Glow
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextSize = 22
@@ -159,11 +180,6 @@ local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(1, 0)
 CloseCorner.Parent = CloseBtn
 
-CloseBtn.MouseButton1Click:Connect(function()
-    MenuFrame.Visible = false
-    MenuOpen = false
-end)
-
 -- Contenedor de funciones
 local ContentFrame = Instance.new("ScrollingFrame")
 ContentFrame.Size = UDim2.new(1, -20, 1, -55)
@@ -180,20 +196,20 @@ local ContentCorner = Instance.new("UICorner")
 ContentCorner.CornerRadius = UDim.new(0, 8)
 ContentCorner.Parent = ContentFrame
 
-local ContentPadding = Instance.new("UIPadding")
-ContentPadding.PaddingTop = UDim.new(0, 10)
-ContentPadding.PaddingBottom = UDim.new(0, 10)
-ContentPadding.PaddingLeft = UDim.new(0, 5)
-ContentPadding.PaddingRight = UDim.new(0, 5)
-ContentPadding.Parent = ContentFrame
-
 local ListLayout = Instance.new("UIListLayout")
 ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ListLayout.Padding = UDim.new(0, 8)
 ListLayout.Parent = ContentFrame
 
--- Función para crear toggles estilo neon
-local function CreateToggle(name, description, order)
+local UIPadding = Instance.new("UIPadding")
+UIPadding.PaddingTop = UDim.new(0, 10)
+UIPadding.PaddingBottom = UDim.new(0, 10)
+UIPadding.PaddingLeft = UDim.new(0, 5)
+UIPadding.PaddingRight = UDim.new(0, 5)
+UIPadding.Parent = ContentFrame
+
+-- Función Toggle Creator
+local function CreateToggle(name, desc, order)
     local Container = Instance.new("Frame")
     Container.Size = UDim2.new(1, 0, 0, 55)
     Container.BackgroundColor3 = Theme.Secondary
@@ -220,7 +236,7 @@ local function CreateToggle(name, description, order)
     DescLbl.Size = UDim2.new(0.65, 0, 0.4, 0)
     DescLbl.Position = UDim2.new(0, 12, 0.5, 2)
     DescLbl.BackgroundTransparency = 1
-    DescLbl.Text = description or ""
+    DescLbl.Text = desc or ""
     DescLbl.TextColor3 = Theme.ToggleOff
     DescLbl.Font = Enum.Font.Gotham
     DescLbl.TextSize = 12
@@ -268,25 +284,18 @@ local function CreateToggle(name, description, order)
     return { Update = UpdateToggle, GetState = function() return state end }
 end
 
--- Crear funciones del menú
+-- Crear Features
 local Features = {}
-Features.Speed = CreateToggle("Speed Hack", "Aumenta velocidad de movimiento", 1)
-Features.Fly = CreateToggle("Fly Mode", "Vuela con WASD + Space/Ctrl", 2)
-Features.Noclip = CreateToggle("Noclip", "Atraviesa paredes y objetos", 3)
-Features.BTools = CreateToggle("Build Tools", "Herramientas de construcción admin", 4)
-Features.InfJump = CreateToggle("Infinite Jump", "Salta ilimitadamente en el aire", 5)
+Features.Speed = CreateToggle("Speed Hack", "Velocidad x3", 1)
+Features.Fly = CreateToggle("Fly Mode", "WASD + Space/Ctrl", 2)
+Features.Noclip = CreateToggle("Noclip", "Atravesar paredes", 3)
+Features.BTools = CreateToggle("Build Tools", "Herramientas Admin", 4)
+Features.InfJump = CreateToggle("Infinite Jump", "Salto ilimitado", 5)
 
--- Lógica de funciones
+-- Lógica de Funciones
 local SpeedConn, NoclipConn
 local FlyBV, FlyBG
 
-Features.Speed.Update(false)
-Features.Fly.Update(false)
-Features.Noclip.Update(false)
-Features.BTools.Update(false)
-Features.InfJump.Update(false)
-
--- SPEED
 local function ToggleSpeed(active)
     if SpeedConn then SpeedConn:Disconnect(); SpeedConn = nil end
     if active then
@@ -300,7 +309,6 @@ local function ToggleSpeed(active)
     end
 end
 
--- FLY
 local function ToggleFly(active)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -313,8 +321,7 @@ local function ToggleFly(active)
         FlyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         FlyBG = Instance.new("BodyGyro", root)
         FlyBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        FlyBG.P = 10000
-        FlyBG.D = 100
+        FlyBG.P = 10000; FlyBG.D = 100
     else
         hum.PlatformStand = false
         if FlyBV then FlyBV:Destroy(); FlyBV = nil end
@@ -322,7 +329,6 @@ local function ToggleFly(active)
     end
 end
 
--- NOCLIP
 local function ToggleNoclip(active)
     if NoclipConn then NoclipConn:Disconnect(); NoclipConn = nil end
     if active then
@@ -344,15 +350,11 @@ local function ToggleNoclip(active)
     end
 end
 
--- BTOOLS
 local function ToggleBTools(active)
     if active then
-        local tools = {"Clone", "Delete", "Grab"}
-        for _, t in ipairs(tools) do
+        for _, t in ipairs({"Clone", "Delete", "Grab"}) do
             if not LocalPlayer.Backpack:FindFirstChild(t) then
-                local tool = Instance.new("Tool")
-                tool.Name = t
-                tool.RequiresHandle = false
+                local tool = Instance.new("Tool"); tool.Name = t; tool.RequiresHandle = false
                 tool.Parent = LocalPlayer.Backpack
             end
         end
@@ -364,7 +366,6 @@ local function ToggleBTools(active)
     end
 end
 
--- INFINITE JUMP
 local InfJumpConn
 local function ToggleInfJump(active)
     if InfJumpConn then InfJumpConn:Disconnect(); InfJumpConn = nil end
@@ -376,7 +377,7 @@ local function ToggleInfJump(active)
     end
 end
 
--- Conectar toggles a funciones
+-- Loop de actualización
 task.spawn(function()
     while task.wait(0.1) do
         ToggleSpeed(Features.Speed.GetState())
@@ -387,7 +388,7 @@ task.spawn(function()
     end
 end)
 
--- VUELO MOVIMIENTO
+-- Movimiento de Vuelo
 RunService.RenderStepped:Connect(function()
     if FlyBV and FlyBG then
         local dir = Vector3.zero
@@ -403,8 +404,9 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==========================================
--- 3. SISTEMA DE ARRASTRE Y GUARDADO
+-- 4. ARRASTRE Y TOGGLE DEL MENÚ
 -- ==========================================
+-- Arrastrar menú
 TopBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         Dragging = true
@@ -413,53 +415,31 @@ TopBar.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        if Dragging then
-            Dragging = false
-            -- Guardar posición
-            SavedPos = MenuFrame.Position
-            print(" Posición del menú guardada")
-        end
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end
 end)
 
 RunService.RenderStepped:Connect(function()
     if Dragging then
         local mousePos = UserInputService:GetMouseLocation()
-        local newPos = UDim2.new(0, mousePos.X - DragOffset.X, 0, mousePos.Y - DragOffset.Y)
-        MenuFrame.Position = newPos
+        MenuFrame.Position = UDim2.new(0, mousePos.X - DragOffset.X, 0, mousePos.Y - DragOffset.Y)
     end
 end)
 
--- Restaurar posición guardada al cargar
-if SavedPos then
-    MenuFrame.Position = SavedPos
-end
-
--- ==========================================
--- 4. ATAJOS DE TECLADO
--- ==========================================
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    -- INSERT: Abrir/Cerrar menú
-    if input.KeyCode == Enum.KeyCode.Insert then
-        MenuOpen = not MenuOpen
-        MenuFrame.Visible = MenuOpen
-        if MenuOpen and SavedPos then
-            MenuFrame.Position = SavedPos
-        end
-    end
-    -- DELETE: Toggle HUD
-    if input.KeyCode == Enum.KeyCode.Delete then
-        StatsGui.Enabled = not StatsGui.Enabled
-    end
-    -- HOME: Resetear posición del menú
-    if input.KeyCode == Enum.KeyCode.Home then
-        MenuFrame.Position = UDim2.new(0.5, -140, 0.5, -190)
-        SavedPos = MenuFrame.Position
-        print("🔄 Posición del menú reseteada")
+-- Toggle Menú con Botón Flotante
+FloatBtn.MouseButton1Click:Connect(function()
+    MenuOpen = not MenuOpen
+    MenuFrame.Visible = MenuOpen
+    
+    -- Animación simple de entrada/salida
+    if MenuOpen then
+        MenuFrame.Position = UDim2.new(0.5, -140, 0.5, -190) -- Centrar al abrir
     end
 end)
 
-print("✅ DarkClient v3.0 Neon Purple Loaded")
-print("📌 INSERT = Menú | DELETE = HUD | HOME = Reset Posición")
+-- Cerrar con X
+CloseBtn.MouseButton1Click:Connect(function()
+    MenuFrame.Visible = false
+    MenuOpen = false
+end)
+
+print("✅ DarkClient v3.1 Loaded | Click 'D' button to open menu")
